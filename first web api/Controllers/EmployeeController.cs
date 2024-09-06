@@ -7,22 +7,24 @@ using System.Data.SqlClient;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Web;
 using System.Web.Http;
 
 
 namespace first_web_api.Controllers
 {
-    public class DepartmentController : ApiController
+    public class EmployeController : ApiController
     {
         public HttpResponseMessage Get()
         {
             string query = @" 
-                    select DepartmentId, DepartmentName
-                            from dbo.Department";
+                    select EmployeeId, EmployeeName, Department, 
+                      convert(varchar(10)DateOfJoining,120) as DateaOfJoining, PhotoFileName
+                            from dbo.Employee";
             DataTable table = new DataTable();
-            using(var con= new SqlConnection(ConfigurationManager. ConnectionStrings["EmployeeAppDb"].ConnectionString))
+            using (var con = new SqlConnection(ConfigurationManager.ConnectionStrings["EmployeeAppDb"].ConnectionString))
             using (var cmd = new SqlCommand(query, con))
-            using (var da= new SqlDataAdapter(cmd))
+            using (var da = new SqlDataAdapter(cmd))
             {
                 cmd.CommandType = CommandType.Text;
                 da.Fill(table);
@@ -32,13 +34,16 @@ namespace first_web_api.Controllers
 
         }
 
-        public string Post(Department dep)
+        public string Post(Employee emp)
         {
             try
             {
                 string query = @"
-                                insert into dbo.Department value
-                                ('"+dep.DepartmentName+ @"') 
+                                insert into dbo.Employee value
+                                ('" + emp.EmployeeName + @"'
+                                 '" + emp.Department + @"'
+                                 '" + emp.DateOfJoining + @"'
+                                 '" + emp.PhotoFileName + @"') 
                                    ";
                 DataTable table = new DataTable();
                 using (var con = new SqlConnection(ConfigurationManager.ConnectionStrings["EmployeeAppDb"].ConnectionString))
@@ -52,19 +57,22 @@ namespace first_web_api.Controllers
 
 
             }
-            catch(Exception)
+            catch (Exception)
             {
                 return "Fail to Add[]";
             }
         }
-        public string Put(Department dep)
+        public string Put(Employee emp)
         {
             try
             {
                 string query = @"
-                                update dbo.Department set DepartmentName=
-                                '" + dep.DepartmentName + @"'
-                                 where DepartmentID = "+dep.DepartmentId+ @"
+                                update dbo.Employee set 
+                               EmployeeName= '" + emp.EmployeeName + @"'
+                               Department= '" + emp.Department + @"'
+                               DateOfJoining= '" + emp.DateOfJoining + @"'
+                               PhotoFileName= '" + emp.PhotoFileName + @"'
+                                 where EmployeeId = " + emp.EmployeeId + @"
                                    ";
                 DataTable table = new DataTable();
                 using (var con = new SqlConnection(ConfigurationManager.ConnectionStrings["EmployeeAppDb"].ConnectionString))
@@ -88,8 +96,8 @@ namespace first_web_api.Controllers
             try
             {
                 string query = @"
-                                delete from dbo.Department
-                                 where DepartmentID = " + id+ @"
+                                delete from dbo.Employee
+                                 where EmployeeId = " + id + @"
                                    ";
                 DataTable table = new DataTable();
                 using (var con = new SqlConnection(ConfigurationManager.ConnectionStrings["EmployeeAppDb"].ConnectionString))
@@ -108,6 +116,47 @@ namespace first_web_api.Controllers
                 return "Failed to Delete";
             }
         }
+
+        [Route("api/Employee/GetAllDEpartmentNames")]
+        [HttpGet]
+        public HttpResponseMessage GetAllDepartmentNames()
+        {
+            string query = @"
+                                Select DepartName from dbo.Department
+                                 ";
+
+            DataTable table = new DataTable();
+            using (var con = new SqlConnection(ConfigurationManager.ConnectionStrings["EmployeeAppDb"].ConnectionString))
+            using (var cmd = new SqlCommand(query, con))
+            using (var da = new SqlDataAdapter(cmd))
+            {
+                cmd.CommandType = CommandType.Text;
+                da.Fill(table);
+            }
+
+            return Request.CreateResponse(HttpStatusCode.OK, table);
+        }
+
+        [Route("api/Employee/SaveFile")]
+        public string SaveFile()
+        {
+            try
+            {
+                var httpRequest = HttpContext.Current.Request;
+                var postedFile = httpRequest.Files(0);
+                string filename = postedFileName;
+                var physicalPath = httpRequest.RequestContext.Current.Server.MapPath("~/Photos" +filename);
+
+                postedFile.SavedAs(physicalPath);
+
+                return filename;
+            }
+            catch(Exception)
+            {
+                return "anonymous.png";
+            }
+        }
     }
 }
+
 
